@@ -7,13 +7,4 @@
 - Unity 6000.2.8f1 プロジェクト。バージョン変更時は `ProjectSettings/ProjectVersion.txt` を必ず確認。
 - 生成物（Library, Temp, Logs, Build/Builds, UserSettings など）はコミットしない。.gitignore を遵守。
 - 新規パッケージ追加時は `Packages/manifest.json` と `Packages/packages-lock.json` の差分を確認。
-- 作業履歴は下記「コミュニケーションログ」に時系列で追記していくこと。
-
-## コミュニケーションログ（追記型）
-- 2025-12-02 23:55 「gitで基本設定して」→ git init、.gitignore/.gitattributes/AGENTS を追加し初回コミット。
-- 2025-12-03 00:10 「波紋シミュレーション方針を検討」→ Computeベースの設計案を提示。
-- 2025-12-03 00:32 「方針どおり実装＆インスペクタで確認したい」→ RippleCompute/スクリプト/カスタムインスペクタを実装しコミット。
-- 2025-12-03 00:40 「コンパイルエラー修正」→ StateTexture の参照名を修正しコミット。
-- 2025-12-03 00:48 「マウス離したらForceクリア＆プレビュー更新」→ マウス入力処理とエディタ更新を追加しコミット。
-- 2025-12-03 00:55 「波が遅いので速く調整したい」→ waveSpeed上限拡大と timeScale 追加でスピード調整可能にしコミット。
-- 2025-12-03 01:00 「Force軌跡を残さずその場だけ反映」→ 毎フレームForceをクリアし瞬間入力に変更しコミット。
+- 作業履歴は `COMMUNICATION_LOG.md` に時系列で追記すること。
