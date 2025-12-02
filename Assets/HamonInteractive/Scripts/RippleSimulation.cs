@@ -45,7 +45,7 @@ namespace HamonInteractive
 
         public RenderTexture ResultTexture => _result;
         public RenderTexture ForceTexture => _force;
-        public RenderTexture StateTexture => _stateRead;
+        public RenderTexture StateTexture => StateRead;
 
         private RenderTexture _stateA;
         private RenderTexture _stateB;
