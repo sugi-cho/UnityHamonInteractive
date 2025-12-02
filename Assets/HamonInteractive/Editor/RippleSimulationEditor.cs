@@ -10,6 +10,7 @@ namespace HamonInteractive.Editor
         private SerializedProperty _rippleCompute;
         private SerializedProperty _resolution;
         private SerializedProperty _waveSpeed;
+        private SerializedProperty _timeScale;
         private SerializedProperty _damping;
         private SerializedProperty _depthScale;
         private SerializedProperty _flowScale;
@@ -35,6 +36,7 @@ namespace HamonInteractive.Editor
             _rippleCompute = serializedObject.FindProperty("rippleCompute");
             _resolution = serializedObject.FindProperty("resolution");
             _waveSpeed = serializedObject.FindProperty("waveSpeed");
+            _timeScale = serializedObject.FindProperty("timeScale");
             _damping = serializedObject.FindProperty("damping");
             _depthScale = serializedObject.FindProperty("depthScale");
             _flowScale = serializedObject.FindProperty("flowScale");
@@ -63,6 +65,7 @@ namespace HamonInteractive.Editor
             EditorGUILayout.PropertyField(_rippleCompute);
             EditorGUILayout.PropertyField(_resolution);
             EditorGUILayout.PropertyField(_waveSpeed);
+            EditorGUILayout.PropertyField(_timeScale, new GUIContent("Time Scale"));
             EditorGUILayout.PropertyField(_damping);
             EditorGUILayout.PropertyField(_depthScale);
             EditorGUILayout.PropertyField(_flowScale);

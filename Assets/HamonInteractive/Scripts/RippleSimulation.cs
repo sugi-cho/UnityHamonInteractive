@@ -15,7 +15,8 @@ namespace HamonInteractive
         [Header("基本設定")]
         [SerializeField] private ComputeShader rippleCompute;
         [SerializeField] private Vector2Int resolution = new Vector2Int(512, 512);
-        [SerializeField, Range(0f, 10f)] private float waveSpeed = 2.0f;
+        [SerializeField, Range(0f, 50f)] private float waveSpeed = 8.0f;
+        [SerializeField, Range(0.1f, 5f)] private float timeScale = 1.0f;
         [SerializeField, Range(0f, 1f)] private float damping = 0.02f;
         [SerializeField] private float depthScale = 1.0f;
         [SerializeField] private float flowScale = 1.0f;
@@ -168,7 +169,8 @@ namespace HamonInteractive
 
         private void Simulate(float deltaTime)
         {
-            deltaTime = Mathf.Min(deltaTime, 1f / 30f); // 安定性のため上限
+            // timeScale で時間を速める／遅くする。上限を少し緩めて伝播速度を上げやすく。
+            deltaTime = Mathf.Min(deltaTime * timeScale, 1f / 20f);
 
             rippleCompute.SetFloat("_DeltaTime", deltaTime);
             rippleCompute.SetFloat("_Damping", damping);
