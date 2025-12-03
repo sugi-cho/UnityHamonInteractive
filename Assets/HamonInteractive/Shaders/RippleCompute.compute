@@ -1,5 +1,5 @@
 // 波紋シミュレーション用 Compute Shader
-// 状態: R=高さ, G=速度
+// 状態: R=現在の高さ, G=前フレームの高さ（中央差分で時間二階微分を表現）
 // 出力: RGB=法線(0-1), A=高さ
 
 #pragma kernel SimStep
@@ -110,24 +110,27 @@ void SimStep(uint3 id : SV_DispatchThreadID)
     int2 coord = int2(id.xy);
     float2 uv = (coord + 0.5) * _InvSimSize;
 
-    float boundary = sampleBoundary(coord);
-    if (boundary < 0.5)
-    {
-        float v = _StateRead.Load(int3(coord, 0)).y;
-        _StateWrite[coord] = float2(0, -v * _BoundaryBounce);
-        return;
-    }
-
     float2 flow = (_UseFlow != 0) ? _FlowTex.SampleLevel(samplerLinearClamp, uv, 0).xy * _FlowScale : 0;
     float2 backUV = saturate(uv - flow * _DeltaTime);
 
     float2 state = sampleStateAdvected(backUV);
-    float h = state.x;
-    float v = state.y;
+    float h = state.x;      // 現在高さ
+    float hPrev = state.y;  // 前フレーム高さ
+
+    float boundary = sampleBoundary(coord);
+    if (boundary < 0.5)
+    {
+        // 固体セルは高さをゼロにし、前フレームは反射させて残響を抑える
+        _StateWrite[coord] = float2(0, -hPrev * _BoundaryBounce);
+        return;
+    }
 
     float force = sampleForce(uv) * _ForceToVelocity;
     float depth = sampleDepth(uv);
     float c = _WaveSpeed * (1 + depth * _DepthScale);
+    // 安定化: CFL 条件 c*dt <= 1/sqrt(2) を少し余裕ありでクランプ
+    float cMax = 0.7 / max(_DeltaTime, 1e-5);
+    c = min(c, cMax);
 
     float hL = fetchHeightOffset(backUV, uv, int2(-1, 0), h);
     float hR = fetchHeightOffset(backUV, uv, int2(1, 0), h);
@@ -136,15 +139,29 @@ void SimStep(uint3 id : SV_DispatchThreadID)
 
     float lap = (hL + hR + hD + hU - 4.0 * h);
 
-    v += (c * c * lap - _Damping * v) * _DeltaTime;
-    v += force * _DeltaTime;
-    h += v * _DeltaTime;
+    float dt = _DeltaTime;
+    float dt2 = dt * dt;
+    float c2dt2 = (c * c) * dt2;
 
-    float decay = max(1.0 - _AmplitudeDecay * _DeltaTime, 0.0);
+    // 中央差分の波動方程式: h_{n+1} = (2 - d*dt)h_n - (1 - d*dt)h_{n-1} + c^2 dt^2 lap + F dt^2
+    float dampingTerm = max(1.0 - _Damping * dt, 0.0);
+    float hNext = (2.0 * h - hPrev) * dampingTerm + c2dt2 * lap + force * dt2;
+
+    // 高周波アーチファクト抑制用の微少な数値粘性
+    hNext += 0.001 * lap;
+
+    float decay = max(1.0 - _AmplitudeDecay * dt, 0.0);
+    hNext *= decay;
     h *= decay;
-    v *= decay;
 
-    _StateWrite[coord] = float2(h, v);
+    // 半精度への丸めノイズを防ぐため微小値をゼロクリップ
+    if (abs(hNext) < 5e-4 && abs(h) < 5e-4)
+    {
+        hNext = 0;
+        h = 0;
+    }
+
+    _StateWrite[coord] = float2(hNext, h);
 }
 
 [numthreads(THREADS, THREADS, 1)]

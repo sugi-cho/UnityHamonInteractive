@@ -4,7 +4,7 @@ namespace HamonInteractive
 {
     /// <summary>
     /// RenderTexture ベースの波紋シミュレーション管理。
-    /// 状態: R=高さ, G=速度 / 結果: RGB=法線(0-1), A=高さ
+    /// 状態: R=現在高さ, G=前フレーム高さ / 結果: RGB=法線(0-1), A=高さ
     /// </summary>
     [DisallowMultipleComponent]
     public class RippleSimulation : MonoBehaviour
@@ -23,6 +23,12 @@ namespace HamonInteractive
         [SerializeField] private float flowScale = 1.0f;
         [SerializeField] private float boundaryBounce = 1.0f;
         [SerializeField] private float forceToVelocity = 1.0f;
+
+        [Header("時間ステップ")]
+        [SerializeField] private bool useFixedTimeStep = true;
+        [SerializeField, Range(1f / 240f, 1f / 15f)] private float fixedTimeStep = 1f / 60f;
+        [SerializeField, Range(1, 8)] private int maxSubSteps = 4;
+        [SerializeField, Tooltip("accumulator が暴走しないための上限秒数")] private float maxAccumulatedTime = 0.25f;
 
         [Header("出力")]
         [Tooltip("シミュレーション結果をBlitで書き出す先。未設定なら内部RTのみ。")]
@@ -53,6 +59,7 @@ namespace HamonInteractive
         private RenderTexture _force;
         private RenderTexture _result;
         private bool _useAasRead = true;
+        private float _timeAccumulator = 0f;
 
         private int _kernelSim;
         private int _kernelNormals;
@@ -86,7 +93,7 @@ namespace HamonInteractive
             if (rippleCompute == null) return;
             if (!EnsureResources()) return;
 
-            Simulate(Time.deltaTime);
+            SimulateWithTime(Time.deltaTime * timeScale);
             BlitResultIfNeeded();
         }
 
@@ -166,11 +173,37 @@ namespace HamonInteractive
         private RenderTexture StateRead => _useAasRead ? _stateA : _stateB;
         private RenderTexture StateWrite => _useAasRead ? _stateB : _stateA;
 
-        private void Simulate(float deltaTime)
+        private void SimulateWithTime(float deltaTime)
         {
-            // timeScale で時間を速める／遅くする。上限を少し緩めて伝播速度を上げやすく。
-            deltaTime = Mathf.Min(deltaTime * timeScale, 1f / 20f);
+            if (useFixedTimeStep)
+            {
+                _timeAccumulator = Mathf.Min(_timeAccumulator + deltaTime, maxAccumulatedTime);
 
+                int steps = 0;
+                while (_timeAccumulator >= fixedTimeStep && steps < maxSubSteps)
+                {
+                    StepSim(fixedTimeStep);
+                    _timeAccumulator -= fixedTimeStep;
+                    steps++;
+                }
+
+                // 低FPSで積み残しが小さい場合は一度だけ処理して遅延を防ぐ
+                if (steps == 0 && _timeAccumulator > 0f && _timeAccumulator < fixedTimeStep * 0.5f)
+                {
+                    StepSim(_timeAccumulator);
+                    _timeAccumulator = 0f;
+                }
+            }
+            else
+            {
+                // 可変Δtモードは既存挙動：極端な大Δtを制限
+                float clamped = Mathf.Min(deltaTime, 1f / 20f);
+                StepSim(clamped);
+            }
+        }
+
+        private void StepSim(float deltaTime)
+        {
             rippleCompute.SetFloat("_DeltaTime", deltaTime);
             rippleCompute.SetFloat("_Damping", damping);
             rippleCompute.SetFloat("_AmplitudeDecay", amplitudeDecay);
