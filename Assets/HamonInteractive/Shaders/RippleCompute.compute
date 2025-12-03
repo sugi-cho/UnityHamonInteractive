@@ -72,9 +72,54 @@ float sampleDepth(float2 uv)
     return _DepthTex.SampleLevel(samplerLinearClamp, uv, 0).r;
 }
 
+// エッジ処理を適用。戻り値: bounceMul (吸収時は -1)
+float processEdge(inout float2 uv)
+{
+    float bounceMul = 1.0;
+
+    // X edge
+    if (uv.x < 0.0 || uv.x > 1.0)
+    {
+        if (_EdgeModeHorizontal == 2) // Wrap
+        {
+            uv.x = frac(uv.x + 1.0);
+        }
+        else if (_EdgeModeHorizontal == 1) // Absorb
+        {
+            return -1.0;
+        }
+        else // Bounce
+        {
+            uv.x = saturate(uv.x);
+            bounceMul *= _BoundaryBounce;
+        }
+    }
+
+    // Y edge
+    if (uv.y < 0.0 || uv.y > 1.0)
+    {
+        if (_EdgeModeVertical == 2) // Wrap
+        {
+            uv.y = frac(uv.y + 1.0);
+        }
+        else if (_EdgeModeVertical == 1) // Absorb
+        {
+            return -1.0;
+        }
+        else // Bounce
+        {
+            uv.y = saturate(uv.y);
+            bounceMul *= _BoundaryBounce;
+        }
+    }
+    return bounceMul;
+}
+
 float2 sampleStateAdvected(float2 uv)
 {
-    return _StateRead.SampleLevel(samplerLinearClamp, uv, 0);
+    float bounce = processEdge(uv);
+    if (bounce < 0.0) return float2(0, 0); // absorb
+    return _StateRead.SampleLevel(samplerLinearClamp, uv, 0) * bounce;
 }
 
 float sampleForce(float2 uv)
@@ -90,43 +135,8 @@ float sampleForce(float2 uv)
 float fetchHeightOffset(float2 backUV, float2 currUV, int2 offset, float hCenter)
 {
     float2 uvOffset = backUV + float2(offset) * _InvSimSize;
-    float bounceMul = 1.0;
-
-    // X edge処理
-    if (uvOffset.x < 0.0 || uvOffset.x > 1.0)
-    {
-        if (_EdgeModeHorizontal == 2) // Wrap
-        {
-            uvOffset.x = frac(uvOffset.x + 1.0);
-        }
-        else if (_EdgeModeHorizontal == 1) // Absorb
-        {
-            return 0.0;
-        }
-        else // Bounce
-        {
-            uvOffset.x = saturate(uvOffset.x);
-            bounceMul *= _BoundaryBounce;
-        }
-    }
-
-    // Y edge処理
-    if (uvOffset.y < 0.0 || uvOffset.y > 1.0)
-    {
-        if (_EdgeModeVertical == 2) // Wrap
-        {
-            uvOffset.y = frac(uvOffset.y + 1.0);
-        }
-        else if (_EdgeModeVertical == 1) // Absorb
-        {
-            return 0.0;
-        }
-        else // Bounce
-        {
-            uvOffset.y = saturate(uvOffset.y);
-            bounceMul *= _BoundaryBounce;
-        }
-    }
+    float bounceMul = processEdge(uvOffset);
+    if (bounceMul < 0.0) return 0.0; // absorb
 
     float h = _StateRead.SampleLevel(samplerLinearClamp, uvOffset, 0).x * bounceMul;
 
@@ -151,7 +161,7 @@ void SimStep(uint3 id : SV_DispatchThreadID)
     float2 uv = (coord + 0.5) * _InvSimSize;
 
     float2 flow = (_UseFlow != 0) ? _FlowTex.SampleLevel(samplerLinearClamp, uv, 0).xy * _FlowScale : 0;
-    float2 backUV = saturate(uv - flow * _DeltaTime);
+    float2 backUV = uv - flow * _DeltaTime;
 
     float2 state = sampleStateAdvected(backUV);
     float h = state.x;      // 現在高さ

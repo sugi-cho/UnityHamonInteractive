@@ -18,6 +18,14 @@ namespace HamonInteractive.Editor
         private SerializedProperty _boundaryBounce;
         private SerializedProperty _forceToVelocity;
 
+        private SerializedProperty _horizontalEdge;
+        private SerializedProperty _verticalEdge;
+
+        private SerializedProperty _useFixedTimeStep;
+        private SerializedProperty _fixedTimeStep;
+        private SerializedProperty _maxSubSteps;
+        private SerializedProperty _maxAccumulatedTime;
+
         private SerializedProperty _outputTexture;
         private SerializedProperty _autoBlitResult;
 
@@ -41,6 +49,14 @@ namespace HamonInteractive.Editor
             _flowScale = serializedObject.FindProperty("flowScale");
             _boundaryBounce = serializedObject.FindProperty("boundaryBounce");
             _forceToVelocity = serializedObject.FindProperty("forceToVelocity");
+
+            _horizontalEdge = serializedObject.FindProperty("horizontalEdge");
+            _verticalEdge = serializedObject.FindProperty("verticalEdge");
+
+            _useFixedTimeStep = serializedObject.FindProperty("useFixedTimeStep");
+            _fixedTimeStep = serializedObject.FindProperty("fixedTimeStep");
+            _maxSubSteps = serializedObject.FindProperty("maxSubSteps");
+            _maxAccumulatedTime = serializedObject.FindProperty("maxAccumulatedTime");
 
             _outputTexture = serializedObject.FindProperty("outputTexture");
             _autoBlitResult = serializedObject.FindProperty("autoBlitResult");
@@ -68,6 +84,27 @@ namespace HamonInteractive.Editor
             EditorGUILayout.PropertyField(_flowScale);
             EditorGUILayout.PropertyField(_boundaryBounce);
             EditorGUILayout.PropertyField(_forceToVelocity);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Edge Mode", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_horizontalEdge, new GUIContent("Horizontal Edge"));
+            EditorGUILayout.PropertyField(_verticalEdge, new GUIContent("Vertical Edge"));
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Time Step", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_useFixedTimeStep, new GUIContent("Use Fixed Time Step"));
+            if (_useFixedTimeStep.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(_fixedTimeStep, new GUIContent("Fixed Time Step (s)"));
+                EditorGUILayout.PropertyField(_maxSubSteps, new GUIContent("Max Sub Steps"));
+                EditorGUILayout.PropertyField(_maxAccumulatedTime, new GUIContent("Max Accumulated Time (s)"));
+                EditorGUI.indentLevel--;
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("可変Δtモード。大きなΔtになると不安定になりやすいので注意。", MessageType.Info);
+            }
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Output", EditorStyles.boldLabel);
@@ -100,7 +137,7 @@ namespace HamonInteractive.Editor
             if (_showPreviews.boolValue)
             {
                 DrawPreview(sim.DebugResultTexture, "Result (Normal/Height)");
-                DrawPreview(sim.DebugStateTexture, "State (R=Height G=Velocity)");
+                DrawPreview(sim.DebugStateTexture, "State (R=Height G=PrevHeight)");
                 DrawPreview(sim.DebugForceTexture, "Force");
 
                 EditorGUILayout.LabelField("RenderTextures", EditorStyles.boldLabel);

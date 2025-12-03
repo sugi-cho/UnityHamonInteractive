@@ -20,6 +20,14 @@
 - `maxSubSteps` : 1 フレームでの最大サブステップ数。
 - `maxAccumulatedTime` : フレーム落ち時に積める上限時間。
 
+## コースティクス（簡易反射）
+- コンポーネント: `CausticsRenderer`
+- 入力: `RippleSimulation.ResultTexture`（法線/高さ）、Directional Light
+- 参照: `sourceQuad`(水面), `targetQuad`(投影先), `directionalLight`
+- 出力: `causticsRT`（加算ブレンド用テクスチャ）
+- 調整: `energyScale`(明るさ), `normalInfluence`(水面法線影響), `colorTint`
+- 実装概要: Compute で水面各テクセルから反射線を計算し、ターゲット平面上のUVにポイントを投影 → 加算シェーダで描画。ブラーは必要に応じて別途追加してください。
+
 ## 入力テクスチャ
 - `boundaryTexture` : 白=水面、黒=地形。反射/固体セル判定に使用。
 - `depthTexture` : 0–1 の水深。深いほど波速が上がる。
