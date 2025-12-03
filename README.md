@@ -12,6 +12,7 @@
 - `flowScale` : フローテクスチャによる移流の強さ。
 - `boundaryBounce` : 境界での反射係数。
 - `forceToVelocity` : ブラシ/外力を速度に変換する係数。
+- `horizontalEdge` / `verticalEdge` : テクスチャ端での処理モード（Bounce=反射, Absorb=吸収, Wrap=反対側へループ）。
 
 ### 時間ステップ
 - `useFixedTimeStep` : 固定ステップを使うか（推奨オン）。

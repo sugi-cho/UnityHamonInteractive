@@ -51,6 +51,8 @@ cbuffer RippleParams
     int _UseDepth;
     int _UseFlow;
     int _UseExternalForce;
+    int _EdgeModeHorizontal; // 0=Bounce, 1=Absorb, 2=Wrap
+    int _EdgeModeVertical;   // 0=Bounce, 1=Absorb, 2=Wrap
 }
 
 // Brush params
@@ -87,12 +89,50 @@ float sampleForce(float2 uv)
 
 float fetchHeightOffset(float2 backUV, float2 currUV, int2 offset, float hCenter)
 {
-    float2 uvOffset = saturate(backUV + float2(offset) * _InvSimSize);
-    float h = _StateRead.SampleLevel(samplerLinearClamp, uvOffset, 0).x;
+    float2 uvOffset = backUV + float2(offset) * _InvSimSize;
+    float bounceMul = 1.0;
+
+    // X edge処理
+    if (uvOffset.x < 0.0 || uvOffset.x > 1.0)
+    {
+        if (_EdgeModeHorizontal == 2) // Wrap
+        {
+            uvOffset.x = frac(uvOffset.x + 1.0);
+        }
+        else if (_EdgeModeHorizontal == 1) // Absorb
+        {
+            return 0.0;
+        }
+        else // Bounce
+        {
+            uvOffset.x = saturate(uvOffset.x);
+            bounceMul *= _BoundaryBounce;
+        }
+    }
+
+    // Y edge処理
+    if (uvOffset.y < 0.0 || uvOffset.y > 1.0)
+    {
+        if (_EdgeModeVertical == 2) // Wrap
+        {
+            uvOffset.y = frac(uvOffset.y + 1.0);
+        }
+        else if (_EdgeModeVertical == 1) // Absorb
+        {
+            return 0.0;
+        }
+        else // Bounce
+        {
+            uvOffset.y = saturate(uvOffset.y);
+            bounceMul *= _BoundaryBounce;
+        }
+    }
+
+    float h = _StateRead.SampleLevel(samplerLinearClamp, uvOffset, 0).x * bounceMul;
 
     if (_UseBoundary != 0)
     {
-        float2 boundaryUV = saturate(currUV + float2(offset) * _InvSimSize);
+        float2 boundaryUV = uvOffset; // wrap/clamp済み
         float b = _Boundary.SampleLevel(samplerPointClamp, boundaryUV, 0).r;
         if (b < 0.5)
         {

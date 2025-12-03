@@ -24,6 +24,12 @@ namespace HamonInteractive
         [SerializeField] private float boundaryBounce = 1.0f;
         [SerializeField] private float forceToVelocity = 1.0f;
 
+        public enum EdgeMode { Bounce = 0, Absorb = 1, Wrap = 2 }
+
+        [Header("端の処理")]
+        [SerializeField] private EdgeMode horizontalEdge = EdgeMode.Bounce;
+        [SerializeField] private EdgeMode verticalEdge = EdgeMode.Bounce;
+
         [Header("時間ステップ")]
         [SerializeField] private bool useFixedTimeStep = true;
         [SerializeField, Range(1f / 240f, 1f / 15f)] private float fixedTimeStep = 1f / 60f;
@@ -212,6 +218,8 @@ namespace HamonInteractive
             rippleCompute.SetFloat("_FlowScale", flowScale);
             rippleCompute.SetFloat("_BoundaryBounce", boundaryBounce);
             rippleCompute.SetFloat("_ForceToVelocity", forceToVelocity);
+            rippleCompute.SetInt("_EdgeModeHorizontal", (int)horizontalEdge);
+            rippleCompute.SetInt("_EdgeModeVertical", (int)verticalEdge);
             rippleCompute.SetFloats("_InvSimSize", 1f / resolution.x, 1f / resolution.y);
             rippleCompute.SetInts("_SimSize", resolution.x, resolution.y);
             rippleCompute.SetInt("_UseBoundary", boundaryTexture ? 1 : 0);
