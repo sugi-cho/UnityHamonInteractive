@@ -23,12 +23,6 @@ namespace HamonInteractive.Editor
         private SerializedProperty _externalForce;
         private SerializedProperty _useExternalForce;
 
-        private SerializedProperty _enableMouseInput;
-        private SerializedProperty _mouseRadius;
-        private SerializedProperty _mouseStrength;
-        private SerializedProperty _mouseFalloff;
-        private SerializedProperty _mouseCamera;
-
         private SerializedProperty _showPreviews;
 
         private void OnEnable()
@@ -48,12 +42,6 @@ namespace HamonInteractive.Editor
             _flowTexture = serializedObject.FindProperty("flowTexture");
             _externalForce = serializedObject.FindProperty("externalForce");
             _useExternalForce = serializedObject.FindProperty("useExternalForce");
-
-            _enableMouseInput = serializedObject.FindProperty("enableMouseInput");
-            _mouseRadius = serializedObject.FindProperty("mouseRadius");
-            _mouseStrength = serializedObject.FindProperty("mouseStrength");
-            _mouseFalloff = serializedObject.FindProperty("mouseFalloff");
-            _mouseCamera = serializedObject.FindProperty("mouseCamera");
 
             _showPreviews = serializedObject.FindProperty("showPreviews");
         }
@@ -79,17 +67,6 @@ namespace HamonInteractive.Editor
             EditorGUILayout.PropertyField(_flowTexture);
             EditorGUILayout.PropertyField(_externalForce);
             EditorGUILayout.PropertyField(_useExternalForce, new GUIContent("Use External Force"));
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Mouse Debug", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(_enableMouseInput);
-            using (new EditorGUI.DisabledScope(!_enableMouseInput.boolValue))
-            {
-                EditorGUILayout.PropertyField(_mouseRadius, new GUIContent("Brush Radius (UV)"));
-                EditorGUILayout.PropertyField(_mouseStrength, new GUIContent("Brush Strength"));
-                EditorGUILayout.PropertyField(_mouseFalloff, new GUIContent("Brush Falloff"));
-                EditorGUILayout.PropertyField(_mouseCamera, new GUIContent("Camera"));
-            }
 
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(_showPreviews, new GUIContent("Show Previews"));
@@ -120,7 +97,7 @@ namespace HamonInteractive.Editor
 
             if (Application.isPlaying && _showPreviews.boolValue)
             {
-                // プレイ中にプレビューを更新し続ける
+                // keep previews updating during play mode
                 Repaint();
                 EditorApplication.QueuePlayerLoopUpdate();
             }

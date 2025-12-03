@@ -34,13 +34,6 @@ namespace HamonInteractive
         [SerializeField] private RenderTexture externalForce;
         [SerializeField] private bool useExternalForce = false;
 
-        [Header("デバッグ入力 (マウス)")]
-        [SerializeField] private bool enableMouseInput = true;
-        [SerializeField, Range(0.001f, 0.25f)] private float mouseRadius = 0.03f;
-        [SerializeField] private float mouseStrength = 2.0f;
-        [SerializeField, Range(0.1f, 8f)] private float mouseFalloff = 2.0f;
-        [SerializeField] private Camera mouseCamera;
-
         [Header("プレビュー")]
         [SerializeField] private bool showPreviews = true;
 
@@ -53,7 +46,6 @@ namespace HamonInteractive
         private RenderTexture _force;
         private RenderTexture _result;
         private bool _useAasRead = true;
-        private bool _mouseWasDown = false;
 
         private int _kernelSim;
         private int _kernelNormals;
@@ -87,7 +79,6 @@ namespace HamonInteractive
             if (rippleCompute == null) return;
             if (!EnsureResources()) return;
 
-            HandleMouseInput();
             Simulate(Time.deltaTime);
         }
 
@@ -224,37 +215,7 @@ namespace HamonInteractive
             if (_result != null) Graphics.Blit(Texture2D.blackTexture, _result);
         }
 
-        private void HandleMouseInput()
-        {
-            if (!enableMouseInput || !Application.isPlaying) { _mouseWasDown = false; return; }
-
-            // 1フレームごとに Force をクリアして「軌跡」を残さない
-            ClearForceTexture();
-
-            bool isDown = Input.GetMouseButton(0) || Input.GetMouseButton(1);
-            if (!isDown) { _mouseWasDown = false; return; }
-
-            var cam = mouseCamera != null ? mouseCamera : Camera.main;
-            Vector3 mouse = Input.mousePosition;
-            Vector2 uv;
-
-            if (cam != null)
-            {
-                uv = (Vector2)cam.ScreenToViewportPoint(mouse);
-            }
-            else
-            {
-                uv = new Vector2(mouse.x / Screen.width, mouse.y / Screen.height);
-            }
-
-            if (uv.x < 0f || uv.x > 1f || uv.y < 0f || uv.y > 1f) return;
-
-            float sign = Input.GetMouseButton(0) ? 1f : -1f;
-            StampForce(uv, mouseRadius, mouseStrength * sign, mouseFalloff);
-            _mouseWasDown = true;
-        }
-
-        private void StampForce(Vector2 uv, float radius, float strength, float falloff)
+        public void AddForceBrush(Vector2 uv, float radius, float strength, float falloff)
         {
             rippleCompute.SetTexture(_kernelBrush, "_ForceTarget", _force);
             rippleCompute.SetFloats("_InvSimSize", 1f / resolution.x, 1f / resolution.y);
