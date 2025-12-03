@@ -25,3 +25,6 @@
 - 2025-12-03 04:45 「Quad の表裏で法線が逆」→ Unity Quad が -Z 向きであることに合わせ、Source/Target の法線を -forward で Compute に渡すよう修正し、法線ブレンドもその向きを基準に。
 - 2025-12-03 05:00 「可視化用メッシュを自動生成し調整したい」→ CausticsRenderer を ExecuteAlways 化し、エディタ上で床/壁のQuadを自動生成・サイズ調整できるように追加。Transformのスケール・位置はそのまま利用し、法線は right×up で算出。
 - 2025-12-03 05:15 「Play/StopでFloor/Wallが増える」→ 自動生成メッシュを名前で再利用し、OnDisableで安全に破棄する処理を追加して増殖を防止。
+- 2025-12-03 19:51 「RayとPlaneの交点を返すCustomHLSLを追加して」→ VFX用HLSLを新規作成し、RayPlaneIntersection 関数を実装（Custom HLSL Operator 用に out を廃止し、距離を返す仕様に修正）。
+- 2025-12-03 20:27 「direction を normal で反射したベクトルを返す関数を追加して」→ ReflectDirection を RayPlaneIntersection.hlsl に追加。
+- 2025-12-03 20:30 「Caustics VFX Graph の可視化をコミット＆プッシュして」→ 現在の差分（CausticsVisalize.vfx、hamon.unity、RayPlaneIntersection.hlsl など）をコミットし push。
