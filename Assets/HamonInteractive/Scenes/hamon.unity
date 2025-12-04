@@ -790,6 +790,9 @@ MonoBehaviour:
   flowScale: 1
   boundaryBounce: 1
   forceToVelocity: 16
+  normalGradScale: 1
+  normalBlurRadius: 1
+  normalBlurSigma: 1.5
   horizontalEdge: 2
   verticalEdge: 0
   useFixedTimeStep: 1

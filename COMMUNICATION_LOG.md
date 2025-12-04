@@ -31,3 +31,6 @@
 - 2025-12-04 17:41 RippleCompute デッドゾーンを緩和し、微小高さも伝搬するようノイズカットを削除
 - 2025-12-04 17:57 MakeNormals 改善: Sobelで勾配平滑化、NormalNoiseThreshold削除（Compute/C#）
 - 2025-12-04 18:04 RippleSimulationEditor NullReference対応: NormalNoiseThreshold関連のSerializedPropertyとInspector項目を削除
+- 2025-12-04 19:10 ノーマル後処理追加: Sobel勾配スケール/ガウシアンぼかしを調整可能にし、BlurNormalsカーネルとRT追加（Compute/C#、Editor）
+- 2025-12-04 19:13 RippleCompute 警告対応: uint/int比較を座標int変換後に判定しd3d11のsigned/unsigned warningを解消
+- 2025-12-04 20:05 RTフォーマット変更: RippleSimulationのRTをFloat系に更新、VFX/Shader反映

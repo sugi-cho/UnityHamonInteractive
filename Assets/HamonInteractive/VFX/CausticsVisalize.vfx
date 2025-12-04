@@ -114,7 +114,7 @@ MonoBehaviour:
     x: -906
     y: -558
     width: 2410
-    height: 2691
+    height: 2658
 --- !u!114 &114350483966674976
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -13828,7 +13828,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 20
+      m_SerializableObject: 10
     m_Space: -1
   m_Property:
     name: b
@@ -15360,7 +15360,7 @@ MonoBehaviour:
       m_Type:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 3.5
+      m_SerializableObject: 6
     m_Space: -1
   m_Property:
     name: oldRangeMax
@@ -16302,7 +16302,7 @@ MonoBehaviour:
   m_UIIgnoredErrors: []
   m_Parent: {fileID: 114350483966674976}
   m_Children: []
-  m_UIPosition: {x: 89.94292, y: 2021.2859}
+  m_UIPosition: {x: 91, y: 1973}
   m_UICollapsed: 0
   m_UISuperCollapsed: 0
   m_InputSlots:

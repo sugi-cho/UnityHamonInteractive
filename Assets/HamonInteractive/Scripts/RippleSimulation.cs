@@ -23,6 +23,10 @@ namespace HamonInteractive
         [SerializeField] private float flowScale = 1.0f;
         [SerializeField] private float boundaryBounce = 1.0f;
         [SerializeField] private float forceToVelocity = 1.0f;
+        [Header("ノーマル")]
+        [SerializeField, Range(0.1f, 4f)] private float normalGradScale = 1.0f;
+        [SerializeField, Range(0, 3)] private int normalBlurRadius = 1;
+        [SerializeField, Range(0.1f, 3f)] private float normalBlurSigma = 1.0f;
 
         public enum EdgeMode { Bounce = 0, Absorb = 1, Wrap = 2 }
 
@@ -64,11 +68,13 @@ namespace HamonInteractive
         private RenderTexture _stateB;
         private RenderTexture _force;
         private RenderTexture _result;
+        private RenderTexture _resultTemp;
         private bool _useAasRead = true;
         private float _timeAccumulator = 0f;
 
         private int _kernelSim;
         private int _kernelNormals;
+        private int _kernelBlurNormals;
         private int _kernelBrush;
         private int _kernelClear;
 
@@ -122,6 +128,7 @@ namespace HamonInteractive
             if (rippleCompute == null) return;
             _kernelSim = rippleCompute.FindKernel("SimStep");
             _kernelNormals = rippleCompute.FindKernel("MakeNormals");
+            _kernelBlurNormals = rippleCompute.FindKernel("BlurNormals");
             _kernelBrush = rippleCompute.FindKernel("Brush");
             _kernelClear = rippleCompute.FindKernel("ClearForce");
         }
@@ -138,10 +145,11 @@ namespace HamonInteractive
         {
             if (!force && _stateA != null && _stateA.width == resolution.x && _stateA.height == resolution.y) return;
             ReleaseAll();
-            _stateA = CreateRT(RenderTextureFormat.RGHalf, "Ripple_StateA");
-            _stateB = CreateRT(RenderTextureFormat.RGHalf, "Ripple_StateB");
-            _force = CreateRT(RenderTextureFormat.RHalf, "Ripple_Force");
-            _result = CreateRT(RenderTextureFormat.ARGBHalf, "Ripple_Result");
+            _stateA = CreateRT(RenderTextureFormat.RGFloat, "Ripple_StateA");
+            _stateB = CreateRT(RenderTextureFormat.RGFloat, "Ripple_StateB");
+            _force = CreateRT(RenderTextureFormat.RFloat, "Ripple_Force");
+            _result = CreateRT(RenderTextureFormat.ARGBFloat, "Ripple_Result");
+            _resultTemp = CreateRT(RenderTextureFormat.ARGBFloat, "Ripple_ResultTemp");
             _useAasRead = true;
             ClearState();
         }
@@ -166,6 +174,7 @@ namespace HamonInteractive
             ReleaseRT(ref _stateB);
             ReleaseRT(ref _force);
             ReleaseRT(ref _result);
+            ReleaseRT(ref _resultTemp);
         }
 
         private void ReleaseRT(ref RenderTexture rt)
@@ -214,6 +223,9 @@ namespace HamonInteractive
             rippleCompute.SetFloat("_FlowScale", flowScale);
             rippleCompute.SetFloat("_BoundaryBounce", boundaryBounce);
             rippleCompute.SetFloat("_ForceToVelocity", forceToVelocity);
+            rippleCompute.SetFloat("_NormalGradScale", normalGradScale);
+            rippleCompute.SetInt("_NormalBlurRadius", normalBlurRadius);
+            rippleCompute.SetFloat("_NormalBlurSigma", normalBlurSigma);
             rippleCompute.SetInt("_EdgeModeHorizontal", (int)horizontalEdge);
             rippleCompute.SetInt("_EdgeModeVertical", (int)verticalEdge);
             rippleCompute.SetFloats("_InvSimSize", 1f / resolution.x, 1f / resolution.y);
@@ -235,10 +247,15 @@ namespace HamonInteractive
             SwapStates();
 
             rippleCompute.SetTexture(_kernelNormals, "_StateRead", StateRead);
-            rippleCompute.SetTexture(_kernelNormals, "_Result", _result);
+            rippleCompute.SetTexture(_kernelNormals, "_ResultTemp", _resultTemp);
             rippleCompute.SetInts("_SimSize", resolution.x, resolution.y);
             rippleCompute.SetFloats("_InvSimSize", 1f / resolution.x, 1f / resolution.y);
             DispatchByTexture(_kernelNormals, resolution);
+
+            rippleCompute.SetTexture(_kernelBlurNormals, "_ResultSrc", _resultTemp);
+            rippleCompute.SetTexture(_kernelBlurNormals, "_Result", _result);
+            rippleCompute.SetInts("_SimSize", resolution.x, resolution.y);
+            DispatchByTexture(_kernelBlurNormals, resolution);
         }
 
         private void BlitResultIfNeeded()
@@ -266,6 +283,7 @@ namespace HamonInteractive
             if (_stateB != null) Graphics.Blit(Texture2D.blackTexture, _stateB);
             if (_force != null) Graphics.Blit(Texture2D.blackTexture, _force);
             if (_result != null) Graphics.Blit(Texture2D.blackTexture, _result);
+            if (_resultTemp != null) Graphics.Blit(Texture2D.blackTexture, _resultTemp);
         }
 
         public void AddForceBrush(Vector2 uv, float radius, float strength, float falloff)

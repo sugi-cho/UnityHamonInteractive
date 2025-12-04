@@ -4,6 +4,7 @@
 
 #pragma kernel SimStep
 #pragma kernel MakeNormals
+#pragma kernel BlurNormals
 #pragma kernel Brush
 #pragma kernel ClearForce
 
@@ -34,6 +35,8 @@ Texture2D<float> _ExternalForceTex;
 
 RWTexture2D<float> _ForceTarget;       // Brush/Clear 用
 RWTexture2D<float4> _Result;           // RGB: normal, A: height
+RWTexture2D<float4> _ResultTemp;       // MakeNormals 書き出し先
+Texture2D<float4> _ResultSrc;          // BlurNormals 参照元
 
 cbuffer RippleParams
 {
@@ -53,6 +56,9 @@ cbuffer RippleParams
     int _UseExternalForce;
     int _EdgeModeHorizontal; // 0=Bounce, 1=Absorb, 2=Wrap
     int _EdgeModeVertical;   // 0=Bounce, 1=Absorb, 2=Wrap
+    float _NormalGradScale;
+    int _NormalBlurRadius;   // 0-3
+    float _NormalBlurSigma;  // >0
 }
 
 // Brush params
@@ -155,9 +161,8 @@ float fetchHeightOffset(float2 backUV, float2 currUV, int2 offset, float hCenter
 [numthreads(THREADS, THREADS, 1)]
 void SimStep(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= _SimSize.x || id.y >= _SimSize.y) return;
-
     int2 coord = int2(id.xy);
+    if (coord.x >= _SimSize.x || coord.y >= _SimSize.y) return;
     float2 uv = (coord + 0.5) * _InvSimSize;
 
     // dt spike guard
@@ -226,8 +231,8 @@ void SimStep(uint3 id : SV_DispatchThreadID)
 [numthreads(THREADS, THREADS, 1)]
 void MakeNormals(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= _SimSize.x || id.y >= _SimSize.y) return;
     int2 coord = int2(id.xy);
+    if (coord.x >= _SimSize.x || coord.y >= _SimSize.y) return;
 
     int2 left = int2(max(coord.x - 1, 0), coord.y);
     int2 right = int2(min(coord.x + 1, _SimSize.x - 1), coord.y);
@@ -251,7 +256,7 @@ void MakeNormals(uint3 id : SV_DispatchThreadID)
     // Sobel filter for smoother gradient
     float dhx = (hR * 2.0 + hUR + hDR) - (hL * 2.0 + hUL + hDL);
     float dhy = (hU * 2.0 + hUL + hUR) - (hD * 2.0 + hDL + hDR);
-    float2 grad = float2(dhx, dhy) * 0.5;
+    float2 grad = float2(dhx, dhy) * (0.5 * _NormalGradScale);
 
     float3 n = float3(-grad.x, -grad.y, 1.0);
     float lenSq = dot(n, n);
@@ -265,14 +270,49 @@ void MakeNormals(uint3 id : SV_DispatchThreadID)
     }
     float3 encoded = n * 0.5 + 0.5;
 
-    _Result[coord] = float4(encoded, hC);
+    _ResultTemp[coord] = float4(encoded, hC);
+}
+
+[numthreads(THREADS, THREADS, 1)]
+void BlurNormals(uint3 id : SV_DispatchThreadID)
+{
+    int2 coord = int2(id.xy);
+    if (coord.x >= _SimSize.x || coord.y >= _SimSize.y) return;
+
+    int r = clamp(_NormalBlurRadius, 0, 3);
+    float sigma = max(_NormalBlurSigma, 1e-4);
+    float invTwoSigma2 = 0.5 / (sigma * sigma);
+
+    float3 accum = 0;
+    float wsum = 0;
+
+    for (int y = -r; y <= r; y++)
+    {
+        for (int x = -r; x <= r; x++)
+        {
+            int2 c = clamp(coord + int2(x, y), int2(0, 0), _SimSize - 1);
+            float3 n = _ResultSrc.Load(int3(c, 0)).xyz * 2.0 - 1.0;
+            float w = exp(- (x * x + y * y) * invTwoSigma2);
+            accum += n * w;
+            wsum += w;
+        }
+    }
+
+    float3 nBlur = (wsum > 1e-6) ? accum / wsum : float3(0, 0, 1);
+    float lenSq = dot(nBlur, nBlur);
+    if (lenSq > 1e-8) nBlur = normalize(nBlur); else nBlur = float3(0, 0, 1);
+
+    float3 encoded = nBlur * 0.5 + 0.5;
+    float height = _ResultSrc.Load(int3(coord, 0)).w; // 高さはそのまま
+
+    _Result[coord] = float4(encoded, height);
 }
 
 [numthreads(THREADS, THREADS, 1)]
 void Brush(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= _SimSize.x || id.y >= _SimSize.y) return;
     int2 coord = int2(id.xy);
+    if (coord.x >= _SimSize.x || coord.y >= _SimSize.y) return;
     float2 uv = (coord + 0.5) * _InvSimSize;
 
     float dist = distance(uv, _Brush.xy);
@@ -288,8 +328,8 @@ void Brush(uint3 id : SV_DispatchThreadID)
 [numthreads(THREADS, THREADS, 1)]
 void ClearForce(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= _SimSize.x || id.y >= _SimSize.y) return;
     int2 coord = int2(id.xy);
+    if (coord.x >= _SimSize.x || coord.y >= _SimSize.y) return;
     _ForceTarget[coord] = 0.0;
 }
 
