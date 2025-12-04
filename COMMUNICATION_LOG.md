@@ -35,3 +35,4 @@
 - 2025-12-04 19:13 RippleCompute 警告対応: uint/int比較を座標int変換後に判定しd3d11のsigned/unsigned warningを解消
 - 2025-12-04 20:05 RTフォーマット変更: RippleSimulationのRTをFloat系に更新、VFX/Shader反映
 - 2025-12-04 20:28 RippleMouseDebug 改修: MeshColliderにレイキャストしUVでRipple入力、スクリーン座標デバッグ廃止
+- 2025-12-04 22:02 README更新: ノーマル調整パラメータ・FloatRT・RippleMouseDebug仕様を追記

@@ -13,6 +13,10 @@
 - `boundaryBounce` : 境界での反射係数。
 - `forceToVelocity` : ブラシ/外力を速度に変換する係数。
 - `horizontalEdge` / `verticalEdge` : テクスチャ端での処理モード（Bounce=反射, Absorb=吸収, Wrap=反対側へループ）。
+- **Normals**
+  - `normalGradScale` : Sobel 勾配の倍率。法線の強さを調整。
+  - `normalBlurRadius` : 法線ガウシアンぼかし半径（0〜3）。
+  - `normalBlurSigma` : ぼかしのシグマ。
 
 ### 時間ステップ
 - `useFixedTimeStep` : 固定ステップを使うか（推奨オン）。
@@ -30,17 +34,22 @@
 
 ## 入力テクスチャ
 - `boundaryTexture` : 白=水面、黒=地形。反射/固体セル判定に使用。
-- `depthTexture` : 0–1 の水深。深いほど波速が上がる。
+- `depthTexture` : 0〜1 の水深。深いほど波速が上がる。
 - `flowTexture` : RG で XY 流速。水面の移流に使用。
 - `externalForce` : 外部から与える力テクスチャ。`useExternalForce` が有効なとき加算。
 
 ## 内部RTと出力
-- `State` : R=現在高さ, G=前フレーム高さ。
-- `Result` : RGB=法線(0–1), A=高さ。`outputTexture` を設定すれば自動 Blit。
-- `Force` : ブラシ／外力の蓄積用。
+- `State` : R=現在高さ, G=前フレーム高さ。**RGFloat**
+- `Result` : RGB=法線(0〜1), A=高さ。**ARGBFloat**。`outputTexture` を設定すれば自動 Blit。
+- `ResultTemp` : MakeNormals の出力（ARGBFloat）→ BlurNormals で平滑化。
+- `Force` : ブラシ／外力の蓄積用。**RFloat**
 
 ## ブラシ入力
 `AddForceBrush(uv, radius, strength, falloff)` で力を与えられます。`forceToVelocity` と合わせて強度を調整してください。
+
+### マウス／タッチデバッグ
+- `RippleMouseDebug` が MeshCollider へレイキャストし、ヒット UV を RippleSimulation に適用します。
+- `targetMeshCollider` を指定するとそのコライダー以外への入力を無視できます（スクリーン座標デバッグは廃止）。
 
 ## 注意
 - `ProjectSettings/ProjectVersion.txt` で Unity 6000.2.8f1 を確認すること。
